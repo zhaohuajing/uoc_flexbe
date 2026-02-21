@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<behavior name="UnseenObjClusterGraspSamPipeine">
+
+    <executable package_path="compare_flexbe_behaviors.unseenobjclustergraspsampipeine_sm" class="UnseenObjClusterGraspSamPipeineSM" />
+    <tagstring></tagstring>
+    <author>Huajing Zhao</author>
+    <date>Feb 16 2026</date>
+    <description>
+        A perception-to-action pipeline which employs unseen-object-clustering for
+        object segmentation from a
+        scene and choose a target for grasping, then GraspSAM for grasp
+        planning and OMPL for manipulation via MoveIt
+    </description>
+
+
+    <!-- Contained Behaviors -->
+
+    <!-- Available Parameters -->
+
+</behavior>
