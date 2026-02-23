@@ -95,7 +95,7 @@ colcon build --symlink-install
 source install/setup.bash
 ```
 
-### 2) Start required ROS 2 servers
+### 2) Setup required ROS 2 servers
 
 For the UOC-based pipelines, you will typically need:
 
@@ -103,22 +103,6 @@ For the UOC-based pipelines, you will typically need:
 - `/get_grasps` (Contact-GraspNet server) for the CGN pipeline
 - `/run_graspsam` (GraspSAM server) for the GraspSAM pipeline
 - `/move_to_pose` (MoveIt / OMPL motion execution service)
-
-Example launch pattern (replace package/launch names with your actual ones):
-
-```bash
-# Terminal 1: UOC segmentation server
-ros2 launch <uoc_ros2_package> <uoc_segmentation_launch>.launch.py
-
-# Terminal 2A: Contact-GraspNet server (if using the CGN behavior)
-ros2 launch <contact_graspnet_ros2_package> <cgn_server_launch>.launch.py
-
-# Terminal 2B: GraspSAM server (if using the GraspSAM behavior)
-ros2 launch <graspsam_ros2_package> <graspsam_server_launch>.launch.py
-
-# Terminal 3: MoveIt / motion execution service
-ros2 launch <moveit_or_compare_package> <move_to_pose_launch>.launch.py
-```
 
 ### 3) Start FlexBE and run a behavior
 
