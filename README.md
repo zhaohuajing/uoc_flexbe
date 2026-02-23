@@ -1,96 +1,333 @@
-# FlexBE States and Behaviors for uoc
+# FlexBE States and Behaviors for Unseen Object Clustering
 
-Generic template for a behaviors repository to be used for new projects
+FlexBE service states and behavior pipelines for integrating **Unseen Object Clustering (UOC)** into ROS 2 manipulation workflows.
 
-Modify this README as needed for your specific project details.
+This repository provides:
 
-Below we provide basic details, but you are free to delete or modify this README as you wish.
+- **FlexBE service states** for calling UOC ROS 2 segmentation servers
+- **FlexBE behavior pipelines** that use UOC as the perception front-end before grasp planning
+- Integrated pipelines for:
+  - **UOC + Contact-GraspNet (RGB-D)** (recommended)
+  - **UOC + GraspSAM (RGB-D)** (recommended)
+- An experimental/test state for **UOC with point cloud input** (not recommended)
 
-----
+## Overview
 
-This raw repository has several folders and files with the generic name `uoc`.
+This package is a **FlexBE-based perception integration layer** centered on UOC.
 
+It includes two UOC segmentation service states:
 
-This repository is used by the FlexBE widget 
-[`create_repo`](https://github.com/FlexBE/flexbe_behavior_engine/blob/ros2-devel/flexbe_widget/bin/create_repo) 
-script to create an example project that you can build off of to add your own states and behaviors.  
+1. **`unseen_obj_seg_rgbd_service_state.py`** (recommended)
+   - Calls the UOC ROS 2 server using **RGB-D inputs**
+   - This is the intended and reliable usage mode for UOC in our pipeline
+   - Produces segmentation outputs used by downstream target selection and grasp modules
 
-Using `ros2 run flexbe_widget create_repo <my_new_project_name>` will clone this repository, 
-and change the relevant `uoc` text to `my_new_project_name` as needed.
+2. **`unseen_obj_seg_cloud_service_state.py`** (experimental, not recommended)
+   - Calls UOC with **point cloud inputs**
+   - Included mainly for testing / experimentation
+   - In our setup, UOC performs poorly with point-cloud-only inputs
 
-It sets up the `package.xml` files with proper FlexBE export tags.
-It is maintained at version `0.0.1` as the starting point for your work.
+This repository also includes two FlexBE behaviors that connect UOC to downstream grasp planners:
 
-We have provided a license file to conform to ROS guidelines; however, you are free to replace the 
-`LICENSE` file, and apply whatever license you choose to states and behaviors that you create.
+- **UOC -> Contact-GraspNet (RGB-D)**
+- **UOC -> GraspSAM (RGB-D)**
 
-This repository contains an example behavior and examples for writing your own state implementations.
+## Important Recommendation
 
-## Example States in `uoc_flexbe_states`
+Use **UOC with RGB-D inputs**.
 
-Packages providing FlexBE states are identified by an export tag in the `package.xml`:
+- UOC is designed to work well with RGB-D segmentation.
+- The point-cloud UOC state is kept for testing, but segmentation quality is generally poor.
 
-```xml
-  <export>
-      <flexbe_states />
-      <build_type>ament_cmake</build_type>
-  </export>
+Also note:
+
+- **Contact-GraspNet can still be used with point cloud inputs** through other perception/filtering modules (e.g., Euclidean clustering / point cloud filtering), but that is a different integration path and is generally less robust than RGB-D.
+- The weak performance is specifically about **UOC + point cloud**, not all point-cloud-based pipelines in general.
+
+## Repository Structure
+
+```text
+├── uoc_flexbe
+│   ├── CHANGELOG.rst
+│   ├── CMakeLists.txt
+│   └── package.xml
+├── uoc_flexbe_behaviors
+│   ├── bin
+│   │   └── copy_behavior
+│   ├── CHANGELOG.rst
+│   ├── CMakeLists.txt
+│   ├── config
+│   │   └── example.yaml
+│   ├── manifest
+│   │   ├── unseenobjclustercontactgraspnetpipeine.xml
+│   │   └── unseenobjclustergraspsampipeine.xml
+│   ├── package.xml
+│   ├── resource
+│   │   └── uoc_flexbe_behaviors
+│   ├── setup.cfg
+│   ├── setup.py
+│   └── uoc_flexbe_behaviors
+│       ├── __init__.py
+│       ├── unseenobjclustercontactgraspnetpipeine_sm.py
+│       └── unseenobjclustergraspsampipeine_sm.py
+└── uoc_flexbe_states
+    ├── CHANGELOG.rst
+    ├── package.xml
+    ├── resource
+    │   └── uoc_flexbe_states
+    ├── setup.cfg
+    ├── setup.py
+    └── uoc_flexbe_states
+        ├── __init__.py
+        ├── unseen_obj_seg_cloud_service_state.py
+        └── unseen_obj_seg_rgbd_service_state.py
 ```
 
-* `example_state.py `
-  * Example state implementation with extra console logging to show the state life cycle.
+## Quick Start
 
-* `example_action_state.py`
+This section is tailored to the service names used by the uploaded UOC states/behaviors and the downstream integration behaviors.
 
-> Note: These example states are defined with extra console logging that is useful when learning FlexBE, 
-> but you will typically not include so much of the `Logger.info` commands as in these examples.
+### 1) Build the workspace
 
-> Note: You are free to copy and modify these files to create your own files and publish under your own license terms.
-> As per the existing licenses, no warranty is implied.
-
-## Example Behaviors in `uoc_flexbe_behaviors`
-
-Packages providing FlexBE behaviors are identified by an export tag in the `package.xml`:
-
-```xml
-  <export>
-      <flexbe_behaviors />
-      <build_type>ament_cmake</build_type>
-  </export>
+```bash
+cd ~/your_ws
+colcon build --symlink-install
+source install/setup.bash
 ```
 
-  * `example_behavior_sm.py`
-    * Most basic example state machine
+### 2) Start required ROS 2 servers
 
-  * `example_action_behavior_sm.py` 
-    * Uses the `ExampleActionState` with the standard action tutorials 
+For the UOC-based pipelines, you will typically need:
 
-        [Understanding ROS2 Actions](https://docs.ros.org/en/iron/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Actions/Understanding-ROS2-Actions.html)
+- `/segmentation_rgbd` (UOC segmentation server, recommended)
+- `/get_grasps` (Contact-GraspNet server) for the CGN pipeline
+- `/run_graspsam` (GraspSAM server) for the GraspSAM pipeline
+- `/move_to_pose` (MoveIt / OMPL motion execution service)
 
-        [Introducing Turtlesim](https://docs.ros.org/en/iron/Tutorials/Beginner-CLI-Tools/Introducing-Turtlesim/Introducing-Turtlesim.html)
-        
-        To execute the associated behavior in FlexBE, you need to first run the turtlesim node that provdes the action server
+Example launch pattern (replace package/launch names with your actual ones):
 
-        `ros2 run turtlesim turtlesim_node`
-        
-        To display the available actions:
+```bash
+# Terminal 1: UOC segmentation server
+ros2 launch <uoc_ros2_package> <uoc_segmentation_launch>.launch.py
 
-        `ros2 action list`
-        
-        The action is defined by:
+# Terminal 2A: Contact-GraspNet server (if using the CGN behavior)
+ros2 launch <contact_graspnet_ros2_package> <cgn_server_launch>.launch.py
 
-        `/turtle1/rotate_absolute:` [`turtlesim/action/RotateAbsolute`](https://docs.ros2.org/latest/api/turtlesim/action/RotateAbsolute.html)
+# Terminal 2B: GraspSAM server (if using the GraspSAM behavior)
+ros2 launch <graspsam_ros2_package> <graspsam_server_launch>.launch.py
 
-Behaviors typically edited and generated by the FlexBE UI.  
-These generated files are stored in the root workspace `install` folder.
-Presuming a `WORKSPACE_ROOT` environment variable exists, we provide a simple 
-[`copy_behavior`](uoc_flexbe_behaviors/bin/copy_behavior) script to copy a saved behavior 
-&mdash; both the Python implementation and manifest `.xml` file &mdash; 
-to the project source folder for long term storage.
-Use `ros2 run uoc_flexbe_behavior copy_behavior` to see the usage guide. 
-The script should be run from this repository's base folder.
+# Terminal 3: MoveIt / motion execution service
+ros2 launch <moveit_or_compare_package> <move_to_pose_launch>.launch.py
+```
 
-For a Quick-start and more comprehensive introduction to FlexBE, 
-see the [FlexBE Turtlesim Demonstrations](https://github.com/FlexBE/flexbe_turtlesim_demo).
+### 3) Start FlexBE and run a behavior
 
-# uoc_flexbe
+Open FlexBE App / onboard execution and run one of:
+
+- `UnseenObjClusterContactGraspnetPipeine` (UOC + CGN, recommended)
+- `UnseenObjClusterGraspSamPipeine` (UOC + GraspSAM, recommended)
+
+### 4) Verify services
+
+```bash
+ros2 service list | grep -E "segmentation_rgbd|get_grasps|run_graspsam|move_to_pose"
+```
+
+## Provided FlexBE States
+
+### `UnseenObjSegRGBDServiceState` (recommended)
+**File:** `uoc_flexbe_states/unseen_obj_seg_rgbd_service_state.py`
+
+Calls the UOC ROS 2 segmentation service in **RGB-D mode**.
+
+This is the primary and recommended UOC state for real use.
+
+**Typical outputs**
+- Segmentation results / instance metadata (e.g., masks, selected instance candidates, scene mapping info)
+- JSON/path/string metadata for downstream state selection (depending on your UOC server interface)
+
+**Default service**
+- `/segmentation_rgbd`
+
+**Notes**
+- Intended to be used before target selection and downstream grasp planning
+- Works well with both the Contact-GraspNet RGB-D pipeline and the GraspSAM pipeline
+
+---
+
+### `UnseenObjSegCloudServiceState` (experimental, not recommended)
+**File:** `uoc_flexbe_states/unseen_obj_seg_cloud_service_state.py`
+
+Calls the UOC segmentation service using **point cloud inputs**.
+
+**Default service**
+- (typically a cloud segmentation service, depending on your server setup)
+
+**Notes**
+- Included for testing / experimentation
+- UOC generally performs poorly in this mode in our setup
+- Prefer `UnseenObjSegRGBDServiceState` unless you are explicitly testing point-cloud UOC behavior
+
+## Provided FlexBE Behaviors (Pipelines)
+
+### 1) `UnseenObjClusterContactGraspnetPipeine` (recommended)
+**File:** `uoc_flexbe_behaviors/uoc_flexbe_behaviors/unseenobjclustercontactgraspnetpipeine_sm.py`
+
+Pipeline:
+1. `UnseenObjSegRGBDServiceState` (`/segmentation_rgbd`)
+2. `SelectInstanceToSceneNameState` (map selected target to CGN scene naming convention)
+3. `CGNGraspRGBDServiceState` (`/get_grasps`)
+4. `MoveToPoseServiceState` (`/move_to_pose`)
+
+Why recommended:
+- Strongest integration path for UOC-based grasping
+- UOC segmentation pairs well with CGN RGB-D grasp generation
+- Clean and reliable segmentation-to-grasp handoff
+
+---
+
+### 2) `UnseenObjClusterGraspSamPipeine` (recommended)
+**File:** `uoc_flexbe_behaviors/uoc_flexbe_behaviors/unseenobjclustergraspsampipeine_sm.py`
+
+Pipeline:
+1. `UnseenObjSegRGBDServiceState` (`/segmentation_rgbd`)
+2. `SelectInstanceToSceneNameState` (map selected target to GraspSAM scene convention)
+3. `GraspSAMServiceState` (`/run_graspsam`)
+4. `MoveToPoseServiceState` (`/move_to_pose`)
+
+Why recommended:
+- Reuses the same UOC RGB-D segmentation front-end
+- Clean integration into GraspSAM grasp generation
+- Outputs base-frame grasp poses for direct motion planning
+
+## Tables for Easier Documentation
+
+### State summary
+
+| State file | Main class | Inputs | Outputs | Service called | Notes |
+|---|---|---|---|---|---|
+| `unseen_obj_seg_rgbd_service_state.py` | `UnseenObjSegRGBDServiceState` | RGB-D scene inputs / request config | segmentation outputs (instances, masks, metadata) | `/segmentation_rgbd` | Recommended UOC state. |
+| `unseen_obj_seg_cloud_service_state.py` | `UnseenObjSegCloudServiceState` | PointCloud2 / cloud-based request | segmentation outputs (cloud mode) | cloud segmentation service (setup-dependent) | Experimental only; poor performance in our setup. |
+
+### Behavior summary
+
+| Behavior (FlexBE) | Main file | Pipeline type | Services used | Recommended |
+|---|---|---|---|---|
+| `UnseenObjClusterContactGraspnetPipeine` | `unseenobjclustercontactgraspnetpipeine_sm.py` | UOC (RGB-D) -> CGN (RGB-D) -> MoveIt | `/segmentation_rgbd`, `/get_grasps`, `/move_to_pose` | Yes (primary) |
+| `UnseenObjClusterGraspSamPipeine` | `unseenobjclustergraspsampipeine_sm.py` | UOC (RGB-D) -> GraspSAM -> MoveIt | `/segmentation_rgbd`, `/run_graspsam`, `/move_to_pose` | Yes (primary) |
+
+## Architecture
+
+### UOC + Contact-GraspNet (RGB-D) pipeline
+
+```text
+RGB-D Camera
+   |
+   v
+UOC Segmentation (ROS 2 service: /segmentation_rgbd)
+   |
+   v
+Target instance selection / scene mapping
+   |
+   v
+CGNGraspRGBDServiceState
+   |
+   v
+Contact-GraspNet ROS 2 Server (/get_grasps)
+   |
+   v
+Grasp poses (Pose[])
+   |
+   v
+MoveIt / OMPL (/move_to_pose)
+   |
+   v
+Robot motion execution
+```
+
+### UOC + GraspSAM (RGB-D) pipeline
+
+```text
+RGB-D Camera
+   |
+   v
+UOC Segmentation (ROS 2 service: /segmentation_rgbd)
+   |
+   v
+Target instance selection / scene mapping
+   |
+   v
+GraspSAMServiceState
+   |
+   v
+GraspSAM ROS 2 Server (/run_graspsam)
+   |
+   v
+Grasp results -> pose_base extraction
+   |
+   v
+MoveIt / OMPL (/move_to_pose)
+   |
+   v
+Robot motion execution
+```
+
+## Dependencies
+
+This repository assumes the following are available in your ROS 2 workspace:
+
+- **FlexBE** (core + onboard/app tooling)
+- **UOC ROS 2 server**
+  - `/segmentation_rgbd` (recommended)
+  - Optional cloud segmentation service (if testing cloud mode)
+- **Contact-GraspNet ROS 2 server** (for the CGN behavior)
+  - `/get_grasps`
+- **GraspSAM ROS 2 server** (for the GraspSAM behavior)
+  - `/run_graspsam`
+- **MoveIt / motion execution service**
+  - `/move_to_pose`
+
+Companion FlexBE state packages used by the behaviors may include:
+
+- `compare_flexbe_states` (e.g., `MoveToPoseServiceState`, target selection utilities)
+- `cgn_flexbe_states` (for `CGNGraspRGBDServiceState`)
+- `gsam_flexbe_states` (for `GraspSAMServiceState`)
+
+## Installation
+
+Clone into your ROS 2 workspace `src/` folder:
+
+```bash
+cd ~/your_ws/src
+git clone <your_repo_url>
+```
+
+Build and source:
+
+```bash
+cd ~/your_ws
+colcon build --symlink-install
+source install/setup.bash
+```
+
+## Notes and Recommendations
+
+- **Use `UnseenObjSegRGBDServiceState` for production use.**  
+  This is the intended and reliable segmentation mode for UOC in these pipelines.
+
+- The cloud-based UOC state is kept as an experimental/test path. It is not recommended for normal use due to poor segmentation quality.
+
+- If your goal is point-cloud-based grasping with Contact-GraspNet, consider using other point-cloud perception/filtering modules (e.g., Euclidean clustering) instead of UOC cloud mode.
+
+- These behavior files are generated by FlexBE. Manual edits outside `[MANUAL]` regions may be overwritten if regenerated.
+
+## Acknowledgments
+
+This repository builds on:
+
+- Unseen Object Clustering (UOC)
+- FlexBE
+- ROS 2
+- Contact-GraspNet
+- GraspSAM
+- MoveIt
