@@ -48,10 +48,10 @@ Created on Feb 16 2026
 """
 
 
-from compare_flexbe_states.graspsam_service_state import GraspSAMServiceState
-from compare_flexbe_states.move_to_pose_service_state import MoveToPoseServiceState
-from compare_flexbe_states.select_instance_to_cgn_indices_state import SelectInstanceToSceneNameState
-from compare_flexbe_states.unseen_obj_seg_rgbd_service_state import UnseenObjSegRGBDServiceState
+from gsam_flexbe_states.graspsam_service_state import GraspSAMServiceState
+from cgn_flexbe_states.move_to_pose_service_state import MoveToPoseServiceState
+from uoc_flexbe_states.select_instance_to_cgn_indices_state import SelectInstanceToSceneNameState
+from uoc_flexbe_states.unseen_obj_seg_rgbd_service_state import UnseenObjSegRGBDServiceState
 from flexbe_core import Autonomy
 from flexbe_core import Behavior
 from flexbe_core import ConcurrencyContainer
