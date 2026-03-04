@@ -100,7 +100,7 @@ source install/setup.bash
 For the UOC-based pipelines, you will typically need:
 
 - `/segmentation_rgbd` (UOC segmentation server, recommended)
-- `/get_grasps` (Contact-GraspNet server) for the CGN pipeline
+- `/get_grasps_rgbd` (Contact-GraspNet server) for the CGN pipeline
 - `/run_graspsam` (GraspSAM server) for the GraspSAM pipeline
 - `/move_to_pose` (MoveIt / OMPL motion execution service)
 
@@ -114,7 +114,7 @@ Open FlexBE App / onboard execution and run one of:
 ### 4) Verify services
 
 ```bash
-ros2 service list | grep -E "segmentation_rgbd|get_grasps|run_graspsam|move_to_pose"
+ros2 service list | grep -E "segmentation_rgbd|get_grasps_rgbd|run_graspsam|move_to_pose"
 ```
 
 ## Provided FlexBE States
@@ -160,7 +160,7 @@ Calls the UOC segmentation service using **point cloud inputs**.
 Pipeline:
 1. `UnseenObjSegRGBDServiceState` (`/segmentation_rgbd`)
 2. `SelectInstanceToSceneNameState` (map selected target to CGN scene naming convention)
-3. `CGNGraspRGBDServiceState` (`/get_grasps`)
+3. `CGNGraspRGBDServiceState` (`/get_grasps_rgbd`)
 4. `MoveToPoseServiceState` (`/move_to_pose`)
 
 Why recommended:
@@ -197,7 +197,7 @@ Why recommended:
 
 | Behavior (FlexBE) | Main file | Pipeline type | Services used | Recommended |
 |---|---|---|---|---|
-| `UnseenObjClusterContactGraspnetPipeine` | `unseenobjclustercontactgraspnetpipeine_sm.py` | UOC (RGB-D) -> CGN (RGB-D) -> MoveIt | `/segmentation_rgbd`, `/get_grasps`, `/move_to_pose` | Yes (primary) |
+| `UnseenObjClusterContactGraspnetPipeine` | `unseenobjclustercontactgraspnetpipeine_sm.py` | UOC (RGB-D) -> CGN (RGB-D) -> MoveIt | `/segmentation_rgbd`, `/get_grasps_rgbd`, `/move_to_pose` | Yes (primary) |
 | `UnseenObjClusterGraspSamPipeine` | `unseenobjclustergraspsampipeine_sm.py` | UOC (RGB-D) -> GraspSAM -> MoveIt | `/segmentation_rgbd`, `/run_graspsam`, `/move_to_pose` | Yes (primary) |
 
 ## Architecture
@@ -217,7 +217,7 @@ Target instance selection / scene mapping
 CGNGraspRGBDServiceState
    |
    v
-Contact-GraspNet ROS 2 Server (/get_grasps)
+Contact-GraspNet ROS 2 Server (/get_grasps_rgbd)
    |
    v
 Grasp poses (Pose[])
@@ -265,7 +265,7 @@ This repository assumes the following are available in your ROS 2 workspace:
   - `/segmentation_rgbd` (recommended)
   - Optional cloud segmentation service (if testing cloud mode)
 - **Contact-GraspNet ROS 2 server** (for the CGN behavior)
-  - `/get_grasps`
+  - `/get_grasps_rgbd`
 - **GraspSAM ROS 2 server** (for the GraspSAM behavior)
   - `/run_graspsam`
 - **MoveIt / motion execution service**
